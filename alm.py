@@ -11,6 +11,7 @@ import os
 from scipy.stats import norm
 import alm_utils
 
+
 def run():
     rf = Instrument('rf',type='debt',r_annual=.06, entry_transaction_cost=10,exit_transaction_cost=20)
     cash_instrument = Instrument('cash',type='debt',r_annual=0, entry_transaction_cost=0,exit_transaction_cost=0)
@@ -314,6 +315,12 @@ class Goal:
         best_instrument = self.best_instrument(date=date, instruments_list = applicable_instruments_list)
         self.switch_positions(date,best_instrument)
                 
+
+rf = Instrument('rf',type='debt',r_annual=.06, entry_transaction_cost=10,exit_transaction_cost=20)
+cash_instrument = Instrument('cash',type='debt',r_annual=0, entry_transaction_cost=0,exit_transaction_cost=0)
+
+data_folder_name = 'Data'
+instruments_folder_name = "Instruments"
 
 
 if __name__ == '__main__':
