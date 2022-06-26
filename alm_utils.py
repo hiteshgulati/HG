@@ -1,5 +1,9 @@
 import numpy as np
 
+def return_conversion (r,n,this_period = 1):
+    return (1+r)**(n/this_period) - 1
+
+
 def to_currency (value, multiplier=100, add_currency_symbol=True, currency_symbol = '₹',rounding=0):
     negative_sign = ""
     if value < 0:
@@ -39,5 +43,3 @@ def to_currency (value, multiplier=100, add_currency_symbol=True, currency_symbo
         return currency_symbol + " " + negative_sign + currency_string
     else: 
         return negative_sign + currency_string
-
-print(to_currency(-78361.78264643789, multiplier=100,rounding=0, add_currency_symbol=True))
