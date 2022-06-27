@@ -1,11 +1,8 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import numpy_financial as npf
 import pandas as pd
 from datetime import datetime as dt
 import warnings
 warnings.filterwarnings('ignore')
-import math
 from dateutil.relativedelta import relativedelta
 import os
 from scipy.stats import norm
