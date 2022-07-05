@@ -10,7 +10,7 @@ import alm_utils
 
 
 def run():
-    rf = Instrument('rf',type='debt',r_annual=.06, entry_transaction_cost=10,exit_transaction_cost=20)
+    dravid = Instrument('dravid',type='debt',r_annual=.06, entry_transaction_cost=10,exit_transaction_cost=20)
     cash_instrument = Instrument('cash',type='debt',r_annual=0, entry_transaction_cost=0,exit_transaction_cost=0)
 
 
@@ -21,19 +21,19 @@ def run():
 
     nifty = Instrument('Nifty',type='equity',ticker='N50',entry_transaction_cost=20, exit_transaction_cost=20)
     nifty.fetch_historical(folder_path=os.path.join(data_folder_name, instruments_folder_name),file_name='NIFTY50_Data.csv')
-    rf = Instrument('rf',type='debt',r_annual=.06, entry_transaction_cost=10,exit_transaction_cost=20)
+    dravid = Instrument('dravid',type='debt',r_annual=.06, entry_transaction_cost=10,exit_transaction_cost=20)
     nifty_p = Position(instrument=nifty,date=date_lists[0],investment_amount=10_000)
-    rf_p = Position(instrument=rf,date=date_lists[0],investment_amount=10_000)
+    dravid_p = Position(instrument=dravid,date=date_lists[0],investment_amount=10_000)
     cash_p = Position(instrument=cash_instrument,date=date_lists[0],investment_amount=10_000)
-    print(f'''{date_lists[0].strftime("%d %b %y")}\n\t{nifty_p}\n\t{rf_p}\n\t{cash_p}''')
+    print(f'''{date_lists[0].strftime("%d %b %y")}\n\t{nifty_p}\n\t{dravid_p}\n\t{cash_p}''')
 
     for date in date_lists[1:]:
         nifty_p.update(date=date)
-        rf_p.update(date=date)
+        dravid_p.update(date=date)
         cash_p.withdraw(date=date,amount=7000)
-        print(f'''{date.strftime("%d %b %y")}\n\t{nifty_p}\n\t{rf_p}\n\t{cash_p}''')
+        print(f'''{date.strftime("%d %b %y")}\n\t{nifty_p}\n\t{dravid_p}\n\t{cash_p}''')
 
-    print(alm_utils.to_currency(rf.future_exit_value(investment_amount=10_000,
+    print(alm_utils.to_currency(dravid.future_exit_value(investment_amount=10_000,
         entry_date=date_lists[0],exit_date=date_lists[2])))
 
     pass
@@ -344,21 +344,21 @@ class Goal:
         self.positions = new_positions
         pass
 
-    def calibrate(self,date, instruments_list,rf_instrument):
+    def calibrate(self,date, instruments_list,dravid):
         self.update(date)
         if not self.is_hitting:
             self.is_steady()
         if self.is_hitting():
             if self.is_wicket_down():
-                self.bring_dravid()
+                self.bring_dravid(date,dravid)
                 self.is_hitting = False
             else:
-                applicable_instruments_list = self.filter_instruments(date,instruments_list,rf_instrument)
+                applicable_instruments_list = self.filter_instruments(date,instruments_list,dravid)
                 best_instrument = self.best_instrument(date=date, instruments_list = applicable_instruments_list)
                 self.switch_positions(date,best_instrument)
                 
 
-rf = Instrument('rf',type='debt',r_annual=.06, entry_transaction_cost=10,exit_transaction_cost=20)
+dravid = Instrument('dravid',type='debt',r_annual=.06, entry_transaction_cost=10,exit_transaction_cost=20)
 cash_instrument = Instrument('cash',type='debt',r_annual=0, entry_transaction_cost=0,exit_transaction_cost=0)
 
 data_folder_name = 'Data'
