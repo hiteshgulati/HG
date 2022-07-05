@@ -207,7 +207,7 @@ class Position:
 
 class Goal:
     def __init__ (self,name, maturity_date,inception_date,
-        confidence,maturity_value,min_maturity_value,pmt=0):
+        confidence,maturity_value,digestible_loss,wickets,pmt=0):
         self.name = name
         self.maturity_date = maturity_date
         self.inception_date = inception_date
@@ -215,7 +215,13 @@ class Goal:
         self.confidence = confidence
         self.payday = 1
         self.maturity_value = maturity_value
-        self.min_maturity_value = min_maturity_value
+        self.remaining_digestible_loss = digestible_loss
+        self.wickets = wickets
+        self.wickets_fallen = 0
+        self.each_wicket_appetite = digestible_loss / wickets
+        self.current_wicket_appetite = self.each_wicket_appetite
+        self.each_wicket_safe_point = 1/wickets
+        self.is_hitting = True
         self.cashflows = pd.DataFrame(index=pd.date_range(start=inception_date, end=maturity_date))\
             .reset_index().rename(columns={'index':'date'})
         self.cashflows['downpayment'] = 0
@@ -226,6 +232,7 @@ class Goal:
         self.emi = self.calculate_emi(rf=alm_utils.return_conversion(.06,1,250))
         self.positions = []
         self.current_value = 0
+        self.current_positions_pnl = 0
         self.update(inception_date)
 
     def __repr__ (self):
@@ -252,6 +259,7 @@ class Goal:
     def update_emi(self,date,updated_emi):
         self.cashflows.loc[(self.cashflows['date'].dt.day==self.payday)&(self.cashflows['date']>=date),'emi'] = updated_emi
         self.emi = updated_emi
+    
     def collect_cash(self,date):
         available_cash = \
             self.cashflows.loc[self.cashflows['date']==date,'downpayment'] \
@@ -261,13 +269,13 @@ class Goal:
             self.positions.append(cash_position)
         return available_cash
             
-    
     def update(self,date):
         self.collect_cash(date)
         self.current_value = 0
         for position in self.positions:
             position.update()
             self.current_value += position.exit_value
+            self.current_positions_pnl += position.pnl
         return self.current_value
 
     def filter_instruments(self,date,instruments_list, rf_instrument):
@@ -294,6 +302,27 @@ class Goal:
                 best_instrument = instrument
         return best_instrument
 
+    def is_wicket_down(self):
+        if self.current_positions_pnl <= self.current_wicket_appetite:
+            return True
+        else:
+            return False
+
+    def is_steady(self):
+        if self.current_value\
+             / (self.maturity_value-self.each_wicket_appetite*self.wickets_fallen)\
+                > self.each_wicket_safe_point*self.wickets_fallen:
+                return True
+        else:
+            return False
+
+    def bring_dravid(self,date,dravid):
+        for position in self.positions:
+            transfer_amount = position.withdraw_full(date)
+            new_position = Position(instrument=dravid,date=date,investment_amount=transfer_amount)
+            self.positions.append(new_position)
+        self.clear_closed_positions()
+
     def switch_positions(self,date,best_instrument):
         for position in self.positions:
             if position.is_active:
@@ -305,12 +334,28 @@ class Goal:
                 transfer_amount = position.withdraw_full(date)
                 new_position = Position(instrument=best_instrument,date=date,investment_amount=transfer_amount)
                 self.positions.append(new_position)
+        self.clear_closed_positions()
+
+    def clear_closed_positions(self):
+        new_positions = []
+        for position in self.positions:
+            if position.is_active:
+                new_positions.append(position)
+        self.positions = new_positions
+        pass
 
     def calibrate(self,date, instruments_list,rf_instrument):
         self.update(date)
-        applicable_instruments_list = self.filter_instruments(date,instruments_list,rf_instrument)
-        best_instrument = self.best_instrument(date=date, instruments_list = applicable_instruments_list)
-        self.switch_positions(date,best_instrument)
+        if not self.is_hitting:
+            self.is_steady()
+        if self.is_hitting():
+            if self.is_wicket_down():
+                self.bring_dravid()
+                self.is_hitting = False
+            else:
+                applicable_instruments_list = self.filter_instruments(date,instruments_list,rf_instrument)
+                best_instrument = self.best_instrument(date=date, instruments_list = applicable_instruments_list)
+                self.switch_positions(date,best_instrument)
                 
 
 rf = Instrument('rf',type='debt',r_annual=.06, entry_transaction_cost=10,exit_transaction_cost=20)
